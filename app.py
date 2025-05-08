@@ -203,8 +203,7 @@ if st.session_state.job_description and st.session_state.resume_content:
                             closing = remove_placeholders(closing)
                             st.session_state.interview_history.append(("interviewer", closing))
                         st.session_state.interview_completed = True
-                        time.sleep(0.1)
-                        st.experimental_rerun()
+                        st.rerun()
                     else:
                         with st.spinner("Interviewer is typing..."):
                             job_desc_str = json.dumps(st.session_state.job_description, indent=2) \
@@ -236,16 +235,15 @@ if st.session_state.job_description and st.session_state.resume_content:
                                 next_q = remove_placeholders(next_q)
                                 st.session_state.count += 1
                                 st.session_state.interview_history.append(("interviewer", next_q))
-                                
-                        time.sleep(0.1)
-                        st.experimental_rerun()
+
+                        st.rerun()
 
 # Reset Button
 if st.session_state.job_description or st.session_state.resume_content or st.session_state.interview_started:
     if st.sidebar.button("Reset Demo"):
         for key in defaults:
             st.session_state[key] = defaults[key]
-        st.experimental_rerun()
+        st.rerun()
 
 # Sidebar Instructions
 st.sidebar.markdown("## How to Use")
