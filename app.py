@@ -128,7 +128,7 @@ if st.session_state.job_description:
 
             - Contact Information (use realistic but fake values)
             - Summary
-            - Work Experience (include company names, locations, dates, responsibilities)
+            - Work Experience (include realistic company names, locations, dates, responsibilities)
             - Education (realistic universities and degrees)
             - Skills
             - Certifications
