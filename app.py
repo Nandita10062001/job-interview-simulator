@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import openai
+import time
 
 # ------------------- Helper Function -------------------
 
@@ -202,6 +203,7 @@ if st.session_state.job_description and st.session_state.resume_content:
                             closing = remove_placeholders(closing)
                             st.session_state.interview_history.append(("interviewer", closing))
                         st.session_state.interview_completed = True
+                        time.sleep(0.1)
                         st.experimental_rerun()
                     else:
                         with st.spinner("Interviewer is typing..."):
@@ -234,7 +236,8 @@ if st.session_state.job_description and st.session_state.resume_content:
                                 next_q = remove_placeholders(next_q)
                                 st.session_state.count += 1
                                 st.session_state.interview_history.append(("interviewer", next_q))
-
+                                
+                        time.sleep(0.1)
                         st.experimental_rerun()
 
 # Reset Button
