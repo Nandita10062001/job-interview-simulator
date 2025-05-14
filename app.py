@@ -3,9 +3,7 @@ import json
 import openai
 import time
 
-# ------------------- Helper Function -------------------
-
-def call_openai(prompt: str, model="gpt-3.5-turbo"):
+def call_openai(prompt: str, model="gpt-4o"):
     try:
         response = openai.chat.completions.create(
             model=model,
@@ -43,18 +41,19 @@ for key, value in defaults.items():
 # ------------------- UI ---------------------
 
 st.title("Demo")
-st.subheader("Job Description → Resume → Interview Questions")
-st.markdown("This demo shows how outputs from one AI prompt become inputs for subsequent prompts.")
+st.subheader("Job Description → Interview Questions")
+st.markdown("This demo shows the various functionalities of SwitchCareers.")
 
 api_key = st.sidebar.text_input("Enter your OpenAI API Key:", type="password")
 if api_key:
     openai.api_key = api_key
 
 # Step 1: Job Description Generation
+
 st.header("Step 1: Generate Job Description")
 
 company_name = st.text_input("Enter the company name:", value=st.session_state.company)
-job_role = st.text_input("Enter a job role (e.g., 'Senior Data Scientist'):", 
+job_role = st.text_input("Enter a job role (e.g., 'Senior Data Scientist'):",
                          value=st.session_state.job_title)
 
 if st.button("Generate Job Description") and job_role and api_key:
@@ -63,33 +62,25 @@ if st.button("Generate Job Description") and job_role and api_key:
         st.session_state.company = company_name
 
         prompt = f"""
-        Create a detailed job description for a **{job_role}** role at **{company_name}**, in structured JSON format.
+            You are a professional recruiter. 
 
-        ### Guidelines:
-        - The job description must be tailored specifically to **{job_role}** at **{company_name}**.
-        - Include industry-relevant **requirements** and **responsibilities**.
-        - Mention technologies or tools this company might use.
-        - Use job market insights to define salary and job type.
-        - [STRICTLY] Structure the response exactly as follows:
-        {{
-            "title": "{job_role}",
-            "type": "<Specify Remote/Hybrid/Onsite, Full-time/Part-time based on the role>",
-            "salary_range": "<Generate a realistic salary range>",
-            "requirements": [
-                "<Years of experience required>",
-                "<Key skills and domain expertise>",
-                "<Commonly required certifications (if any)>",
-                "<Additional 2-3 role-specific qualifications>"
-            ],
-            "responsibilities": [
-                "<Core daily tasks>",
-                "<Collaboration aspects>",
-                "<Technical or managerial expectations>",
-                "<2-3 additional responsibilities for this role>"
-            ],
-            "location": "<Generate a realistic location>"
-        }}
-        """
+            Create a detailed, professional, and engaging **job description** for a **{job_role}** role at **{company_name}**.
+
+            ### Guidelines:
+            - The job description must be tailored specifically to **{job_role}** at **{company_name}**.
+            - Use an engaging tone like seen in job postings on platforms like LinkedIn or Indeed.
+            - Include clear sections:
+                - **Job Title**
+                - **Job Type & Work Arrangement** (e.g. Remote/Hybrid/Onsite, Full-time/Part-time)
+                - **Salary Range**
+                - **Location**
+                - **Requirements** (as 2-3 bullet points)
+                - **Responsibilities** (as 2-3 bullet points)
+            - Mention relevant technologies, tools, or domain practices.
+            - Use job market insights to propose salary range and location.
+            - **[IMPORTANT] Present the output in clear formatted text with headings, bold, and bullet points. Do NOT use JSON format. Do NOT use code blocks.**
+            """
+
         content = call_openai(prompt)
         if content:
             try:
@@ -98,53 +89,52 @@ if st.button("Generate Job Description") and job_role and api_key:
                 st.session_state.job_description = content
 
         st.success("Job description generated!")
+    
+    # Step 2: Resume
+    with st.spinner("Generating Resume..."):
+        job_desc_str = json.dumps(st.session_state.job_description, indent=2) \
+            if isinstance(st.session_state.job_description, dict) else st.session_state.job_description
+
+        name_prompt = """
+        Generate only ONE random, realistic Indian full name (first name and last name).
+        The response should contain only the name, nothing else.
+        """
+        candidate_name = call_openai(name_prompt) or "Nandita Nandakumar"  # Fallback if API fails
+
+        prompt = f"""
+        You are an expert resume writer.
+
+        Generate a realistic, professional resume tailored to the following job description for a candidate named **{candidate_name}**.
+
+        Include realistic company names, job titles, universities, and certifications relevant to the role.
+
+        Use current best practices in resume writing and avoid generic placeholders like "XYZ" or "ABC". The resume should include:
+
+        - Contact Information (use realistic but fake values)
+        - Summary
+        - Work Experience
+        - Education (realistic universities and degrees)
+        - Skills
+        - Certifications
+
+        Job Description:
+        {job_desc_str}
+        """
+
+        st.session_state.resume_content = call_openai(prompt)
 
 # Display Job Description
 if st.session_state.job_description:
-    st.subheader("Generated Job Description:")
+    st.subheader("Job Description:")
     if isinstance(st.session_state.job_description, dict):
-        st.json(st.session_state.job_description)
+        st.markdown(st.session_state.job_description)
     else:
         st.text_area("Job Description", st.session_state.job_description, height=300)
 
-# Step 2: Resume Generation
-if st.session_state.job_description:
-    st.header("Step 2: Generate Resume")
-
-    user_name = st.text_input("Enter your full name for the resume:")
-    
-    if st.button("Generate Tailored Resume") and user_name:
-        with st.spinner("Generating resume..."):
-            job_desc_str = json.dumps(st.session_state.job_description, indent=2) \
-                if isinstance(st.session_state.job_description, dict) else st.session_state.job_description
-
-            prompt = f"""
-            You are an expert resume writer.
-
-            Generate a realistic, professional resume tailored to the following job description for a candidate named **{user_name}**.
-
-            Include realistic company names, job titles, universities, and certifications relevant to the role.
-
-            Use current best practices in resume writing and avoid generic placeholders like "XYZ" or "ABC". The resume should include:
-
-            - Contact Information (use realistic but fake values)
-            - Summary
-            - Work Experience (include realistic company names, locations, dates, responsibilities)
-            - Education (realistic universities and degrees)
-            - Skills
-            - Certifications
-
-            Job Description:
-            {job_desc_str}
-            """
-
-            st.session_state.resume_content = call_openai(prompt)
-
-        st.success("Resume generated!")
-
-    if st.session_state.resume_content:
-        st.subheader("Generated Resume:")
-        st.markdown(st.session_state.resume_content)
+# Display Resume
+if st.session_state.resume_content:
+    st.subheader("Candidate Resume:")
+    st.markdown(st.session_state.resume_content)
 
 # Step 3: Interview
 if st.session_state.job_description and st.session_state.resume_content:
@@ -185,7 +175,7 @@ if st.session_state.job_description and st.session_state.resume_content:
 
         if not st.session_state.interview_completed:
             text_area_key = f"response_input_{st.session_state.count}"
-            user_response = st.text_area("Your response:", height=100,key=text_area_key)
+            user_response = st.text_area("Your response:", height=100, key=text_area_key)
             
             if st.button("Submit Response"):
                 if user_response:
@@ -248,9 +238,8 @@ if st.session_state.job_description or st.session_state.resume_content or st.ses
 # Sidebar Instructions
 st.sidebar.markdown("## How to Use")
 st.sidebar.markdown("""
-1. Enter your OpenAI API key  
-2. Enter the **company name** and **job role**  
-3. Generate a tailored job description  
-4. Generate a tailored resume  
-5. Start and complete a 5-question interview  
+1. Enter your OpenAI API key to activate the AI recruiter workflow.
+2. Input **Company Name** and **Job Role** to auto-generate a tailored Job Description for recruiters to post.
+3. Instantly see the AI-generated **Top Candidate's Resume** for the role.
+4. Preview the **AI-driven Candidate Interview Flow & Questions** to experience how the system works.
 """)
